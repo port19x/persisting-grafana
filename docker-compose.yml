@@ -1,0 +1,40 @@
+version: '3'
+
+networks:
+  default:
+    internal: true
+  proxy:
+    internal: false
+
+services:
+  grafana:
+    image: grafana/grafana:10.2.3
+    networks:
+      - default
+      - proxy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./grafana-dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/dashboard.json
+
+  prometheus:
+    image: prom/prometheus:v2.49.0
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
